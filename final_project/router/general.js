@@ -27,52 +27,114 @@ public_users.post("/register", (req, res) => {
   return res.status(200).json({ message: "User registered successfully" });
 });
 
-// Get full book list
-public_users.get('/', (req, res) => {
-  return res.status(200).json(books);
+// ✅ Async get book list (Task 10)
+const getBooks = () => {
+  return new Promise((resolve, reject) => {
+    if (books) {
+      resolve(books);
+    } else {
+      reject("No books found");
+    }
+  });
+};
+
+// ✅ Updated GET route for full book list using async/await
+public_users.get('/', async (req, res) => {
+  try {
+    const bookList = await getBooks();
+    return res.status(200).json(bookList);
+  } catch (err) {
+    return res.status(500).json({ message: err });
+  }
 });
 
-// Get book by ISBN
-public_users.get('/isbn/:isbn', (req, res) => {
+// ✅ Async get book by ISBN (Task 11)
+const getBookByISBN = (isbn) => {
+  return new Promise((resolve, reject) => {
+    const book = books[isbn];
+    if (book) {
+      resolve(book);
+    } else {
+      reject("Book not found");
+    }
+  });
+};
+
+// ✅ Updated GET route for book by ISBN using async/await
+public_users.get('/isbn/:isbn', async (req, res) => {
   const { isbn } = req.params;
-  const book = books[isbn];
 
-  if (book) {
+  try {
+    const book = await getBookByISBN(isbn);
     return res.status(200).json(book);
-  } else {
-    return res.status(404).json({ message: "Book not found" });
+  } catch (err) {
+    return res.status(404).json({ message: err });
   }
 });
 
-// Get book by author
-public_users.get('/author/:author', (req, res) => {
+// ✅ Async get books by Author (Task 12)
+const getBooksByAuthor = (author) => {
+  return new Promise((resolve, reject) => {
+    const matches = [];
+
+    for (const isbn in books) {
+      if (books[isbn].author.toLowerCase() === author.toLowerCase()) {
+        matches.push({ isbn, ...books[isbn] });
+      }
+    }
+
+    if (matches.length > 0) {
+      resolve(matches);
+    } else {
+      reject("No books found by this author");
+    }
+  });
+};
+
+// ✅ Updated GET route for books by author using async/await
+public_users.get('/author/:author', async (req, res) => {
   const { author } = req.params;
-  const matches = [];
 
-  for (const isbn in books) {
-    if (books[isbn].author.toLowerCase() === author.toLowerCase()) {
-      matches.push({ isbn, ...books[isbn] });
-    }
+  try {
+    const booksByAuthor = await getBooksByAuthor(author);
+    return res.status(200).json(booksByAuthor);
+  } catch (err) {
+    return res.status(404).json({ message: err });
   }
-
-  return res.status(200).json(matches);
 });
 
-// Get book by title
-public_users.get('/title/:title', (req, res) => {
+// ✅ Async get books by Title (Task 13)
+const getBooksByTitle = (title) => {
+  return new Promise((resolve, reject) => {
+    const matches = [];
+
+    for (const isbn in books) {
+      if (books[isbn].title.toLowerCase() === title.toLowerCase()) {
+        matches.push({ isbn, ...books[isbn] });
+      }
+    }
+
+    if (matches.length > 0) {
+      resolve(matches);
+    } else {
+      reject("No books found with this title");
+    }
+  });
+};
+
+// ✅ Updated GET route for books by title using async/await
+public_users.get('/title/:title', async (req, res) => {
   const { title } = req.params;
-  const matches = [];
 
-  for (const isbn in books) {
-    if (books[isbn].title.toLowerCase() === title.toLowerCase()) {
-      matches.push({ isbn, ...books[isbn] });
-    }
+  try {
+    const booksByTitle = await getBooksByTitle(title);
+    return res.status(200).json(booksByTitle);
+  } catch (err) {
+    return res.status(404).json({ message: err });
   }
-
-  return res.status(200).json(matches);
 });
 
-// Get book reviews
+// 🔄 GET book reviews (unchanged)
 public_users.get('/review/:isbn', (req, res) => {
   const { isbn } = req.params;
   const book = books[isbn];
