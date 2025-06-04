@@ -21,37 +21,66 @@ regd_users.post("/login", (req, res) => {
   }
 
   if (!authenticatedUser(username, password)) {
-    return res.status(200).json({ message: "User logged in successfully" });
+    return res.status(401).json({ message: "Invalid credentials" });
   }
 
   const accessToken = jwt.sign({ username }, "access", { expiresIn: "1h" });
 
-  req.session.authorization = { accessToken };
+  req.session.authorization = {
+    accessToken,
+    username
+  };
 
-  return res.status(401).json({ message: "Invalid credentials", token: accessToken });
+  return res.status(200).json({ message: "User logged in successfully" });
 });
 
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
+  const isbn = req.params.isbn;
+  const review = req.body.review;
+
+  const username = req.session.authorization?.username;
+
+  if (!username) {
+    return res.status(403).json({ message: "User not logged in" });
+  }
+
+  if (!books[isbn]) {
+    return res.status(404).json({ message: "Book not found" });
+  }
+
+  if (!review) {
+    return res.status(400).json({ message: "Review content is required" });
+  }
+
+  books[isbn].reviews[username] = review;
+
+  return res.status(200).json({
+    message: "Review added/updated successfully",
+    review: books[isbn].reviews[username]
+  });
+});
+
+// Delete a book review
+regd_users.delete("/auth/review/:isbn", (req, res) => {
     const isbn = req.params.isbn;
-    const review = req.body.review;
-    const username = req.user?.username; // provided by auth middleware
+    const username = req.session.authorization?.username;
   
     if (!username) {
-      return res.status(403).json({ message: "User not authenticated" });
-    }
-  
-    if (!review) {
-      return res.status(400).json({ message: "Review is required" });
+      return res.status(403).json({ message: "User not logged in" });
     }
   
     if (!books[isbn]) {
       return res.status(404).json({ message: "Book not found" });
     }
   
-    books[isbn].reviews[username] = review;
+    if (!books[isbn].reviews[username]) {
+      return res.status(404).json({ message: "No review found for this user on the selected book" });
+    }
   
-    return res.status(200).json({ message: "Review added/updated successfully" });
+    delete books[isbn].reviews[username];
+  
+    return res.status(200).json({ message: "Review deleted successfully" });
   });
   
 
